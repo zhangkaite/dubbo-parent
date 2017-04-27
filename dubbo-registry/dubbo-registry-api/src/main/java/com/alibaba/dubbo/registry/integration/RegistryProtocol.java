@@ -341,8 +341,8 @@ public class RegistryProtocol implements Protocol {
                         result = new ArrayList<URL>(urls);
                     }
                     result.remove(url);
-                    logger.warn("Subsribe category=configurator, but notifed non-configurator urls. may be registry " +
-                            "bug. unexcepted url: " + url);
+                    logger.warn("Subsribe category=configurator, but notifed non-configurator urls. may be registry "
+                            + "bug. unexcepted url: " + url);
                 }
             }
             if (result != null) {

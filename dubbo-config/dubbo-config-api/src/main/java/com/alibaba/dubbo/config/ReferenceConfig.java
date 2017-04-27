@@ -340,6 +340,11 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         }
     }
 
+    /***
+     *
+     * @param map
+     * @return
+     */
     @SuppressWarnings({"unchecked", "rawtypes", "deprecation"})
     private T createProxy(Map<String, String> map) {
         URL tmpUrl = new URL("temp", "localhost", 0, map);

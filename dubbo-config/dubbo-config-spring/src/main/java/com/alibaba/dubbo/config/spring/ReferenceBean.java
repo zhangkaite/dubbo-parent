@@ -109,8 +109,8 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
                 for (ApplicationConfig config : applicationConfigMap.values()) {
                     if (config.isDefault() == null || config.isDefault().booleanValue()) {
                         if (applicationConfig != null) {
-                            throw new IllegalStateException("Duplicate application configs: " + applicationConfig + "" +
-                                    " and " + config);
+                            throw new IllegalStateException("Duplicate application configs: " + applicationConfig +
+                                    "" + " and " + config);
                         }
                         applicationConfig = config;
                     }
