@@ -216,16 +216,16 @@ public class HeaderExchangeServer implements ExchangeServer {
 
     public void send(Object message) throws RemotingException {
         if (closed) {
-            throw new RemotingException(this.getLocalAddress(), null, "Failed to send message " + message + ", cause:" +
-                    " The server " + getLocalAddress() + " is closed!");
+            throw new RemotingException(this.getLocalAddress(), null, "Failed to send message " + message + ", " +
+                    "cause:" + " The server " + getLocalAddress() + " is closed!");
         }
         server.send(message);
     }
 
     public void send(Object message, boolean sent) throws RemotingException {
         if (closed) {
-            throw new RemotingException(this.getLocalAddress(), null, "Failed to send message " + message + ", cause:" +
-                    " The server " + getLocalAddress() + " is closed!");
+            throw new RemotingException(this.getLocalAddress(), null, "Failed to send message " + message + ", " +
+                    "cause:" + " The server " + getLocalAddress() + " is closed!");
         }
         server.send(message, sent);
     }
