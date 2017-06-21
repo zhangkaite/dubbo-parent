@@ -78,6 +78,11 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         return SPRING_CONTEXT;
     }
 
+    /***
+     * 当一个类实现了这个接口（ApplicationContextAware）之后，Aware接口的Bean在被初始之后，可以取得一些相对应的资源，
+     * 这个类可以直接获取spring 配置文件中 所有引用（注入）到的bean对象。
+     * @param applicationContext
+     */
     public void setApplicationContext(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
         SpringExtensionFactory.addApplicationContext(applicationContext);

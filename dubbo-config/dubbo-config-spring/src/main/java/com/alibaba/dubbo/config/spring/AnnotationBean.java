@@ -55,7 +55,7 @@ import com.alibaba.dubbo.config.annotation.Service;
  * AnnotationBean实现了很多spring的特殊bean接口：DisposableBean,BeanFactoryPostProcessor,BeanPostProcessor,
  * ApplicationContextAware。这保证AnnotationBean能够在spring加载的各个时期实现自己的功能。
  * 注解扫描的功能在beanfactory初始化完成调用接口BeanFactoryPostProcessor.postProcessBeanFactory中实现。
- *
+ * <p>
  * AnnotationBean实现了spring bean和context相关的接口，在spring扫描完注解类，并解析完时调用 export() 方法对服务进行暴露
  */
 public class AnnotationBean extends AbstractConfig implements DisposableBean, BeanFactoryPostProcessor,
@@ -105,15 +105,18 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
                 // init scanner
                 Class<?> scannerClass = ReflectUtils.forName("org.springframework.context.annotation" + "" + "" + ""
                         + ".ClassPathBeanDefinitionScanner");
-                //
+                //获取ClassPathBeanDefinitionScanner 实例
                 Object scanner = scannerClass.getConstructor(new Class<?>[]{BeanDefinitionRegistry.class, boolean
                         .class}).newInstance(new Object[]{(BeanDefinitionRegistry) beanFactory, true});
                 // add filter
                 Class<?> filterClass = ReflectUtils.forName("org.springframework.core.type.filter" + "" + "" + "" +
                         "" + ".AnnotationTypeFilter");
+                //获取AnnotationTypeFilter实例
                 Object filter = filterClass.getConstructor(Class.class).newInstance(Service.class);
+
                 Method addIncludeFilter = scannerClass.getMethod("addIncludeFilter", ReflectUtils.forName("org" + ""
                         + ".springframework.core.type.filter.TypeFilter"));
+                //添加包下扫描类类型的过滤
                 addIncludeFilter.invoke(scanner, filter);
                 // scan packages
                 String[] packages = Constants.COMMA_SPLIT_PATTERN.split(annotationPackage);
@@ -142,13 +145,25 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
         }
     }
 
+    /***
+     * BeanPostProcessor接口作用是：如果我们需要在Spring容器完成Bean的实例化、配置和其他的初始化前后添加一些自己的逻辑处理，
+     * 我们就可以定义一个或者多个BeanPostProcessor接口的实现，然后注册到容器中。
+     * @param bean
+     * @param beanName
+     * @return
+     * @throws BeansException
+     */
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         if (!isMatchPackage(bean)) {
             return bean;
         }
+        //获取实例化后类注解为Service的类
         Service service = bean.getClass().getAnnotation(Service.class);
         if (service != null) {
+            //给实例化后注解为Service的类添加监听服务
+            //将注解为Service的类封装到ServiceBean对象中
             ServiceBean<Object> serviceConfig = new ServiceBean<Object>(service);
+
             if (void.class.equals(service.interfaceClass()) && "".equals(service.interfaceName())) {
                 if (bean.getClass().getInterfaces().length > 0) {
                     serviceConfig.setInterface(bean.getClass().getInterfaces()[0]);
@@ -160,6 +175,7 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
             }
             if (applicationContext != null) {
                 serviceConfig.setApplicationContext(applicationContext);
+                //
                 if (service.registry() != null && service.registry().length > 0) {
                     List<RegistryConfig> registryConfigs = new ArrayList<RegistryConfig>();
                     for (String registryId : service.registry()) {
@@ -240,6 +256,7 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
         Method[] methods = bean.getClass().getMethods();
         for (Method method : methods) {
             String name = method.getName();
+            //判断当前方法是否为set方法、参数个数为1、类型为public
             if (name.length() > 3 && name.startsWith("set") && method.getParameterTypes().length == 1 && Modifier
                     .isPublic(method.getModifiers()) && !Modifier.isStatic(method.getModifiers())) {
                 try {
