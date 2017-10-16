@@ -44,11 +44,11 @@ import com.alibaba.dubbo.config.spring.extension.SpringExtensionFactory;
 /**
  * ServiceFactoryBean
  * <p>
- * 当一个类实现了这个接口（ApplicationContextAware）之后，
- * 这个类就可以方便获得ApplicationContext中的所有bean。换句话说，就是这个类可以直接获取spring配置文件中，所有有引用到的bean对象。
- * <p>
- * 如果Bean想发布事件，则Bean必须获得其容器的引用。如果程序中没有直接获取容器的引用，则应该让Bean实现ApplicationContextAware
- * 或 BeanFactoryAware接口，从而可以获得容器的引用。
+ * 当一个类实现了这个接口（ApplicationContextAware）之后，这个类就可以方便获得ApplicationContext中的所有bean。
+ * 换句话说，就是这个类可以直接获取spring配置文件中，所有有引用到的bean对象。
+ *
+ * 如果Bean想发布事件，则Bean必须获得其容器的引用。
+ * 如果程序中没有直接获取容器的引用，则应该让Bean实现ApplicationContextAware或 BeanFactoryAware接口，从而可以获得容器的引用。
  *
  * @author william.liangf
  * @export
@@ -81,6 +81,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
     /***
      * 当一个类实现了这个接口（ApplicationContextAware）之后，Aware接口的Bean在被初始之后，可以取得一些相对应的资源，
      * 这个类可以直接获取spring 配置文件中 所有引用（注入）到的bean对象。
+     * 为ServiceBean添加监听事件
      * @param applicationContext
      */
     public void setApplicationContext(ApplicationContext applicationContext) {
@@ -89,8 +90,10 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         if (applicationContext != null) {
             SPRING_CONTEXT = applicationContext;
             try {
+                //To find a matching method in a class C
                 Method method = applicationContext.getClass().getMethod("addApplicationListener", new
                         Class<?>[]{ApplicationListener.class}); // 兼容Spring2.0.1
+
                 method.invoke(applicationContext, new Object[]{this});
                 supportedApplicationListener = true;
             } catch (Throwable t) {
@@ -114,7 +117,8 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         this.beanName = name;
     }
 
-    //ContextRefreshedEvent:当整个ApplicationContext容器初始化完毕或者刷新时触发该事件；
+    //ContextRefreshedEvent:
+    // 当整个ApplicationContext容器初始化完毕或者刷新时触发该事件；
     public void onApplicationEvent(ApplicationEvent event) {
         if (ContextRefreshedEvent.class.getName().equals(event.getClass().getName())) {
             if (isDelay() && !isExported() && !isUnexported()) {
@@ -135,9 +139,16 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         return supportedApplicationListener && (delay == null || delay.intValue() == -1);
     }
 
+    /****
+     * ServiceBean的实例化
+     * @throws Exception
+     */
     @SuppressWarnings({"unchecked", "deprecation"})
     public void afterPropertiesSet() throws Exception {
         if (getProvider() == null) {
+            /**
+             *
+             */
             Map<String, ProviderConfig> providerConfigMap = applicationContext == null ? null : BeanFactoryUtils
                     .beansOfTypeIncludingAncestors(applicationContext, ProviderConfig.class, false, false);
             if (providerConfigMap != null && providerConfigMap.size() > 0) {
