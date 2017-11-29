@@ -20,8 +20,8 @@ import com.alibaba.dubbo.common.extension.ExtensionLoader;
 import com.alibaba.dubbo.common.extension.SPI;
 
 /**
- * SpiExtensionFactory
- * 
+ * 根据type名称获取集成或者实现了声明为spi接口的类
+ *
  * @author william.liangf
  */
 public class SpiExtensionFactory implements ExtensionFactory {

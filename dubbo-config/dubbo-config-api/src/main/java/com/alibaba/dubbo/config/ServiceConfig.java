@@ -393,9 +393,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                                                 appendParameters(map, argument, method.getName() + "." + argument
                                                         .getIndex());
                                             } else {
-                                                throw new IllegalArgumentException("argument config error : the index" +
-                                                        " attribute and type attirbute not match :index :" + argument
-                                                        .getIndex() + ", type:" + argument.getType());
+                                                throw new IllegalArgumentException("argument config error : the " +
+                                                        "index" + " attribute and type attirbute not match :index :"
+                                                        + argument.getIndex() + ", type:" + argument.getType());
                                             }
                                         } else {
                                             //一个方法中多个callback
@@ -404,9 +404,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                                                 if (argclazz.getName().equals(argument.getType())) {
                                                     appendParameters(map, argument, method.getName() + "." + j);
                                                     if (argument.getIndex() != -1 && argument.getIndex() != j) {
-                                                        throw new IllegalArgumentException("argument config error : " +
-                                                                "the index attribute and type attirbute not match " +
-                                                                ":index :" + argument.getIndex() + ", type:" +
+                                                        throw new IllegalArgumentException("argument config error : "
+                                                                + "the index attribute and type attirbute not match "
+                                                                + ":index :" + argument.getIndex() + ", type:" +
                                                                 argument.getType());
                                                     }
                                                 }
@@ -419,7 +419,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                             appendParameters(map, argument, method.getName() + "." + argument.getIndex());
                         } else {
                             throw new IllegalArgumentException("argument config must set index or type attribute.eg: " +
-                                    "<dubbo:argument index='0' .../> or <dubbo:argument type=xxx .../>");
+                                    "" + "<dubbo:argument index='0' .../> or <dubbo:argument type=xxx .../>");
                         }
 
                     }
@@ -474,6 +474,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
             //配置不是remote的情况下做本地暴露 (配置为remote，则表示只暴露远程服务)
             if (!Constants.SCOPE_REMOTE.toString().equalsIgnoreCase(scope)) {
+                //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&dubbo=2.0.0&generic=false&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=15060&side=provider&timestamp=1511937667027
                 exportLocal(url);
             }
             //如果配置不是local则暴露为远程服务.(配置为local，则表示只暴露本地服务)
@@ -489,13 +490,13 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                             url = url.addParameterAndEncoded(Constants.MONITOR_KEY, monitorUrl.toFullString());
                         }
                         if (logger.isInfoEnabled()) {
-                            logger.info("Register dubbo service " + interfaceClass.getName() + " url " + url + " to " +
-                                    "registry " + registryURL);
+                            logger.info("Register dubbo service " + interfaceClass.getName() + " url " + url + " to "
+                                    + "registry " + registryURL);
                         }
-                        //
+                        //registryURL  registry://10.60.0.63:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.0&owner=william&pid=15060&registry=zookeeper&timestamp=1511937559258
                         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL
                                 .addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString()));
-
+//registry://10.60.0.63:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.0&export=dubbo%3A%2F%2F10.70.1.141%3A20880%2Fcom.alibaba.dubbo.demo.DemoService%3Fanyhost%3Dtrue%26application%3Ddemo-provider%26dubbo%3D2.0.0%26generic%3Dfalse%26interface%3Dcom.alibaba.dubbo.demo.DemoService%26loadbalance%3Droundrobin%26methods%3DsayHello%26owner%3Dwilliam%26pid%3D15060%26side%3Dprovider%26timestamp%3D1511937667027&owner=william&pid=15060&registry=zookeeper&timestamp=1511937559258
                         Exporter<?> exporter = protocol.export(invoker);
                         exporters.add(exporter);
                     }

@@ -46,7 +46,7 @@ import com.alibaba.dubbo.config.spring.extension.SpringExtensionFactory;
  * <p>
  * 当一个类实现了这个接口（ApplicationContextAware）之后，这个类就可以方便获得ApplicationContext中的所有bean。
  * 换句话说，就是这个类可以直接获取spring配置文件中，所有有引用到的bean对象。
- *
+ * <p>
  * 如果Bean想发布事件，则Bean必须获得其容器的引用。
  * 如果程序中没有直接获取容器的引用，则应该让Bean实现ApplicationContextAware或 BeanFactoryAware接口，从而可以获得容器的引用。
  *
@@ -147,7 +147,8 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
     public void afterPropertiesSet() throws Exception {
         if (getProvider() == null) {
             /**
-             *
+             *BeanFactoryUtils.beansOfTypeIncludingAncestors
+             * Return all beans of the given type or subtypes
              */
             Map<String, ProviderConfig> providerConfigMap = applicationContext == null ? null : BeanFactoryUtils
                     .beansOfTypeIncludingAncestors(applicationContext, ProviderConfig.class, false, false);

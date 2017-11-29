@@ -25,6 +25,12 @@ import com.alibaba.dubbo.common.extension.ExtensionLoader;
 
 /**
  * AdaptiveExtensionFactory
+ *
+ * @Adaptive
+ *
+ *
+ *
+ *
  * 
  * @author william.liangf
  */

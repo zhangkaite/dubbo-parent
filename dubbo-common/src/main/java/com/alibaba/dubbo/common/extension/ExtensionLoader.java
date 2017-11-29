@@ -194,31 +194,37 @@ public class ExtensionLoader<T> {
      */
     public List<T> getActivateExtension(URL url, String[] values, String group) {
         List<T> exts = new ArrayList<T>();
-        List<String> names = values == null ? new ArrayList<String>(0) : Arrays.asList(values);
+        List<String> names = values == null ? new ArrayList<String>(0) : Arrays.asList(values); // 解析配置要使用的名称
+
+        // 如果未配置"-default",则加载所有Activates扩展(names指定的扩展)
         if (!names.contains(Constants.REMOVE_VALUE_PREFIX + Constants.DEFAULT_KEY)) {
-            getExtensionClasses();
-            for (Map.Entry<String, Activate> entry : cachedActivates.entrySet()) {
+            getExtensionClasses(); // 加载当前Extension所有实现,会获取到当前Extension中所有@Active实现，赋值给cachedActivates变量
+            for (Map.Entry<String, Activate> entry : cachedActivates.entrySet()) { // 遍历当前扩展所有的@Activate扩展
                 String name = entry.getKey();
                 Activate activate = entry.getValue();
-                if (isMatchGroup(group, activate.group())) {
-                    T ext = getExtension(name);
+                if (isMatchGroup(group, activate.group())) { // 判断group是否满足,group为null则直接返回true
+                    T ext = getExtension(name); // 获取扩展示例
+                    // 排除names指定的扩展;并且如果names中没有指定移除该扩展(-name)，且当前url匹配结果显示可激活才进行使用
                     if (!names.contains(name) && !names.contains(Constants.REMOVE_VALUE_PREFIX + name) && isActive
                             (activate, url)) {
                         exts.add(ext);
                     }
                 }
             }
-            Collections.sort(exts, ActivateComparator.COMPARATOR);
+            Collections.sort(exts, ActivateComparator.COMPARATOR); // 默认排序
         }
+
+        // 对names指定的扩展进行专门的处理
         List<T> usrs = new ArrayList<T>();
-        for (int i = 0; i < names.size(); i++) {
+        for (int i = 0; i < names.size(); i++) { // 遍历names指定的扩展名
             String name = names.get(i);
             if (!name.startsWith(Constants.REMOVE_VALUE_PREFIX) && !names.contains(Constants.REMOVE_VALUE_PREFIX +
-                    name)) {
-                if (Constants.DEFAULT_KEY.equals(name)) {
-                    if (usrs.size() > 0) {
-                        exts.addAll(0, usrs);
-                        usrs.clear();
+                    name)) { // 未设置移除该扩展
+                if (Constants.DEFAULT_KEY.equals(name)) { // default表示上面已经加载并且排序的exts,
+                    // 将排在default之前的Activate扩展放置到default组之前,例如:ext1,default,ext2
+                    if (usrs.size() > 0) { // 如果此时user不为空,则user中存放的是配置在default之前的Activate扩展
+                        exts.addAll(0, usrs); // 注意index是0，放在default前面
+                        usrs.clear(); // 放到default之前，然后清空
                     }
                 } else {
                     T ext = getExtension(name);
@@ -226,8 +232,8 @@ public class ExtensionLoader<T> {
                 }
             }
         }
-        if (usrs.size() > 0) {
-            exts.addAll(usrs);
+        if (usrs.size() > 0) { // 这里留下的都是配置在default之后的
+            exts.addAll(usrs); // 添加到default排序之后
         }
         return exts;
     }
@@ -529,6 +535,7 @@ public class ExtensionLoader<T> {
                                     .toLowerCase() + method.getName().substring(4) : "";
                             Object object = objectFactory.getExtension(pt, property);
                             if (object != null) {
+                                //public void com.alibaba.dubbo.registry.integration.RegistryProtocol.setProtocol(com.alibaba.dubbo.rpc.Protocol)
                                 method.invoke(instance, object);
                             }
                         } catch (Exception e) {
@@ -567,7 +574,11 @@ public class ExtensionLoader<T> {
         return classes;
     }
 
-    // 此方法已经getExtensionClasses方法同步过。
+    /**
+     * 此方法已经getExtensionClasses方法同步过。
+     *
+     * @return
+     */
     private Map<String, Class<?>> loadExtensionClasses() {
         final SPI defaultAnnotation = type.getAnnotation(SPI.class);
         if (defaultAnnotation != null) {
@@ -589,9 +600,18 @@ public class ExtensionLoader<T> {
         return extensionClasses;
     }
 
+    /***
+     *cachedAdaptiveClass : 当前Extension类型对应的AdaptiveExtension类型(只能一个)
+     *cachedWrapperClasses : 当前Extension类型对应的所有Wrapper实现类型(无顺序)
+     *cachedActivates : 当前Extension实现自动激活实现缓存(map,无序)
+     *cachedNames : 扩展点实现类对应的名称(如配置多个名称则值为第一个)
+     * @param extensionClasses
+     * @param dir
+     */
     private void loadFile(Map<String, Class<?>> extensionClasses, String dir) {
-        String fileName = dir + type.getName();
+        String fileName = dir + type.getName(); // 配置文件名称,扫描整个classpath
         try {
+            // 先获取该路径下所有文件
             Enumeration<java.net.URL> urls;
             ClassLoader classLoader = findClassLoader();
             if (classLoader != null) {
@@ -600,50 +620,52 @@ public class ExtensionLoader<T> {
                 urls = ClassLoader.getSystemResources(fileName);
             }
             if (urls != null) {
+                // 遍历这些文件并进行处理
                 while (urls.hasMoreElements()) {
-                    java.net.URL url = urls.nextElement();
+                    java.net.URL url = urls.nextElement(); // 获取配置文件路径
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), "utf-8"));
                         try {
                             String line = null;
-                            while ((line = reader.readLine()) != null) {
+                            while ((line = reader.readLine()) != null) { // 一行一行读取(一行一个配置)
                                 final int ci = line.indexOf('#');
                                 if (ci >= 0) line = line.substring(0, ci);
                                 line = line.trim();
                                 if (line.length() > 0) {
                                     try {
                                         String name = null;
-                                        int i = line.indexOf('=');
+                                        int i = line.indexOf('='); // 等号分割
                                         if (i > 0) {
-                                            name = line.substring(0, i).trim();
-                                            line = line.substring(i + 1).trim();
+                                            name = line.substring(0, i).trim(); // 扩展名称
+                                            line = line.substring(i + 1).trim(); // 扩展实现类
                                         }
                                         if (line.length() > 0) {
-                                            Class<?> clazz = Class.forName(line, true, classLoader);
-                                            if (!type.isAssignableFrom(clazz)) {
+                                            Class<?> clazz = Class.forName(line, true, classLoader); // 加载扩展实现类
+                                            if (!type.isAssignableFrom(clazz)) { // 判断类型是否匹配
                                                 throw new IllegalStateException("Error when load extension class" + "" +
                                                         "(interface: " + type + ", class line: " + clazz.getName() +
                                                         "), class " + clazz.getName() + "is not subtype of interface.");
                                             }
-                                            //如果类声明了Adaptive
-                                            if (clazz.isAnnotationPresent(Adaptive.class)) {
-                                                if (cachedAdaptiveClass == null) {
+                                            if (clazz.isAnnotationPresent(Adaptive.class)) { // 判断该实现类是否@Adaptive,
+                                                // 是的话不会放入extensionClasses/cachedClasses缓存
+                                                if (cachedAdaptiveClass == null) { // 第一个赋值给cachedAdaptiveClass属性
                                                     cachedAdaptiveClass = clazz;
-                                                } else if (!cachedAdaptiveClass.equals(clazz)) {
+                                                } else if (!cachedAdaptiveClass.equals(clazz)) { // 只能有一个@Adaptive实现,
+                                                    // 出现第二个就报错了
                                                     throw new IllegalStateException("More than 1 adaptive class " +
                                                             "found: " + cachedAdaptiveClass.getClass().getName() + "," +
                                                             "" + " " + clazz.getClass().getName());
                                                 }
-                                            } else {
+                                            } else { // 不是@Adaptive类型
                                                 try {
-                                                    clazz.getConstructor(type);
+                                                    clazz.getConstructor(type); // 判断是否Wrapper类型
                                                     Set<Class<?>> wrappers = cachedWrapperClasses;
                                                     if (wrappers == null) {
                                                         cachedWrapperClasses = new ConcurrentHashSet<Class<?>>();
                                                         wrappers = cachedWrapperClasses;
                                                     }
-                                                    wrappers.add(clazz);
-                                                } catch (NoSuchMethodException e) {
+                                                    wrappers.add(clazz); //放入到Wrapper实现类缓存中
+                                                } catch (NoSuchMethodException e) { //不是Wrapper类型，普通实现类型
                                                     clazz.getConstructor();
                                                     if (name == null || name.length() == 0) {
                                                         name = findAnnotationName(clazz);
@@ -661,20 +683,26 @@ public class ExtensionLoader<T> {
                                                             }
                                                         }
                                                     }
-                                                    String[] names = NAME_SEPARATOR.split(name);
+                                                    String[] names = NAME_SEPARATOR.split(name); // 看是否配置了多个name
                                                     if (names != null && names.length > 0) {
-                                                        Activate activate = clazz.getAnnotation(Activate.class);
+                                                        Activate activate = clazz.getAnnotation(Activate.class); //
+                                                        // 是否@Activate类型
                                                         if (activate != null) {
-                                                            cachedActivates.put(names[0], activate);
+                                                            cachedActivates.put(names[0], activate);//
+                                                            // 是则放入cachedActivates缓存
                                                         }
+
+                                                        // 遍历所有name
                                                         for (String n : names) {
                                                             if (!cachedNames.containsKey(clazz)) {
-                                                                cachedNames.put(clazz, n);
+                                                                cachedNames.put(clazz, n); // 放入Extension实现类与名称映射缓存,
+                                                                // 每个class只对应第一个名称有效
                                                             }
                                                             Class<?> c = extensionClasses.get(n);
                                                             if (c == null) {
-                                                                extensionClasses.put(n, clazz);
-                                                            } else if (c != clazz) {
+                                                                extensionClasses.put(n, clazz); //
+                                                                // 放入到extensionClasses缓存,多个name可能对应一个Class
+                                                            } else if (c != clazz) { // 存在重名
                                                                 throw new IllegalStateException("Duplicate extension " +
                                                                         "" + "" + type.getName() + " name " + n + " " +
                                                                         "on " + c.getName() + " and " + clazz.getName
@@ -855,8 +883,8 @@ public class ExtensionLoader<T> {
                 for (int i = 0; i < pts.length; ++i) {
                     if (pts[i].getName().equals("com.alibaba.dubbo.rpc.Invocation")) {
                         // Null Point check
-                        String s = String.format("\nif (arg%d == null) throw new IllegalArgumentException" + "" +
-                                "(\"invocation == null\");", i);
+                        String s = String.format("\nif (arg%d == null) throw new IllegalArgumentException" + "" + ""
+                                + "(\"invocation == null\");", i);
                         code.append(s);
                         s = String.format("\nString methodName = arg%d.getMethodName();", i);
                         code.append(s);
@@ -878,7 +906,7 @@ public class ExtensionLoader<T> {
                                         defaultExtName);
                             else
                                 getNameCode = String.format("( url.getProtocol() == null ? \"%s\" : url.getProtocol()" +
-                                        "" + " )", defaultExtName);
+                                        "" + "" + "" + "" + " )", defaultExtName);
                         } else {
                             if (!"protocol".equals(value[i])) if (hasInvocation)
                                 getNameCode = String.format("url.getMethodParameter(methodName, \"%s\", \"%s\")",
