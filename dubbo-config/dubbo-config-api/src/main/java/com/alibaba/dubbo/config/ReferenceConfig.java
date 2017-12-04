@@ -417,6 +417,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 if (registryURL != null) { // 有 注册中心协议的URL
                     // 对有注册中心的Cluster 只用 AvailableCluster
                     URL u = registryURL.addParameter(Constants.CLUSTER_KEY, AvailableCluster.NAME);
+                   //invoker :interface com.alibaba.dubbo.demo.DemoService -> registry://10.60.0.63:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-consumer&cluster=available&dubbo=2.0.0&pid=7428&refer=application%3Ddemo-consumer%26dubbo%3D2.0.0%26interface%3Dcom.alibaba.dubbo.demo.DemoService%26methods%3DsayHello%26pid%3D7428%26side%3Dconsumer%26timestamp%3D1512111564908&registry=zookeeper&timestamp=1512111588466,directory: com.alibaba.dubbo.rpc.cluster.directory.StaticDirectory@1c0d1b6
                     invoker = cluster.join(new StaticDirectory(u, invokers));
                 } else { // 不是 注册中心的URL
                     invoker = cluster.join(new StaticDirectory(invokers));

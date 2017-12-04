@@ -55,6 +55,7 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
     ExecutorService executor;
 
     public AbstractServer(URL url, ChannelHandler handler) throws RemotingException {
+        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&channel.readonly.sent=true&codec=dubbo&dubbo=2.0.0&generic=false&heartbeat=60000&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=2420&side=provider&timestamp=1512007913876
         super(url, handler);
         localAddress = getUrl().toInetSocketAddress();
         String host = url.getParameter(Constants.ANYHOST_KEY, false) || NetUtils.isInvalidLocalHost(getUrl().getHost
