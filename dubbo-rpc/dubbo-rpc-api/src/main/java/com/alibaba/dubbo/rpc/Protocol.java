@@ -50,11 +50,10 @@ public interface Protocol {
     <T> Exporter<T> export(Invoker<T> invoker) throws RpcException;
 
     /**
-     * //这个是针对客户端的，客户端从注册中心获取服务器端发布的服务信息
-     //通过服务信息得知服务器端使用的协议，然后客户端仍然使用该协议构造一个Invoker。这个Invoker是远程通信类的Invoker。
-     //执行时，需要将执行信息通过指定协议发送给服务器端，服务器端接收到参数Invocation，然后交给服务器端的本地Invoker来执行
-     *
-     *
+     * 这个是针对客户端的，客户端从注册中心获取服务器端发布的服务信息
+     *通过服务信息得知服务器端使用的协议，然后客户端仍然使用该协议构造一个Invoker。这个Invoker是远程通信类的Invoker。
+     *执行时，需要将执行信息通过指定协议发送给服务器端，服务器端接收到参数Invocation，然后交给服务器端的本地Invoker来执行
+
      * 引用远程服务：<br>
      * 1. 当用户调用refer()所返回的Invoker对象的invoke()方法时，协议需相应执行同URL远端export()传入的Invoker对象的invoke()方法。<br>
      * 2. refer()返回的Invoker由协议实现，协议通常需要在此Invoker中发送远程请求。<br>

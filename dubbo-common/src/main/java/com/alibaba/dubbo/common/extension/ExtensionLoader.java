@@ -115,7 +115,7 @@ public class ExtensionLoader<T> {
             throw new IllegalArgumentException("Extension type(" + type + ") is not extension, because WITHOUT @" +
                     SPI.class.getSimpleName() + " Annotation!");
         }
-
+        //com.alibaba.dubbo.common.extension.ExtensionLoader[com.alibaba.dubbo.common.extension.ExtensionFactory]
         ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         if (loader == null) {
             EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
@@ -488,29 +488,44 @@ public class ExtensionLoader<T> {
         return new IllegalStateException(buf.toString());
     }
 
-    /***
-     *  扫描META-INF路径下的配置文件，
-     * @param name
-     * @return
-     */
+
     private T createExtension(String name) {
+        //getExtensionClasses加载当前Extension的所有实现
+        //上面已经解析过，返回的是一个Map，键是name，值是name对应的Class
+        //根据name查找对应的Class
+        //比如name是dubbo，Class就是com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol
         Class<?> clazz = getExtensionClasses().get(name);
+        //如果这时候class还不存在，说明在所有的配置文件中都没找到定义，抛异常
         if (clazz == null) {
             throw findException(name);
         }
         try {
+            //从已创建实例缓存中获取
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
+            //不存在的话就创建一个新实例，加入到缓存中去
             if (instance == null) {
                 EXTENSION_INSTANCES.putIfAbsent(clazz, (T) clazz.newInstance());
                 instance = (T) EXTENSION_INSTANCES.get(clazz);
             }
+            //这里实例就是具体实现的实例了比如是DubboProtocol的实例
+            //属性注入，在上面已经解析过了，根据实例中的setXxx方法进行注入
             injectExtension(instance);
+            //Wrapper的包装
+            //cachedWrapperClasses存放着所有的Wrapper类
+            //cachedWrapperClasses是在加载扩展实现类的时候放进去的
+            //Wrapper类的说明在最上面扩展点自动包装（AOP）
             Set<Class<?>> wrapperClasses = cachedWrapperClasses;
             if (wrapperClasses != null && wrapperClasses.size() > 0) {
                 for (Class<?> wrapperClass : wrapperClasses) {
+                    //比如在包装之前的instance是DubboProtocol实例
+                    //先使用构造器来实例化当前的包装类
+                    //包装类中就已经包含了我们的DubboProtocol实例
+                    //然后对包装类进行injectExtension注入，注入过程在上面
+                    //最后返回的Instance就是包装类的实例。
                     instance = injectExtension((T) wrapperClass.getConstructor(type).newInstance(instance));
                 }
             }
+            //这里返回的是经过所有的包装类包装之后的实例
             return instance;
         } catch (Throwable t) {
             throw new IllegalStateException("Extension instance(name: " + name + ", class: " + type + ")  could not "
@@ -525,28 +540,37 @@ public class ExtensionLoader<T> {
      */
     private T injectExtension(T instance) {
         try {
+            //关于objectFactory的来路，先看下面的解析
+            //这里的objectFactory是AdaptiveExtensionFactory
             if (objectFactory != null) {
+                //遍历扩展实现类实例的方法
                 for (Method method : instance.getClass().getMethods()) {
+                    //只处理set方法
+                    //set开头，只有一个参数，public
                     if (method.getName().startsWith("set") && method.getParameterTypes().length == 1 && Modifier
                             .isPublic(method.getModifiers())) {
+                        //set方法参数类型
                         Class<?> pt = method.getParameterTypes()[0];
                         try {
+                            //setter方法对应的属性名
                             String property = method.getName().length() > 3 ? method.getName().substring(3, 4)
                                     .toLowerCase() + method.getName().substring(4) : "";
+                            //根据类型和名称信息从ExtensionFactory中获取
+                            //比如在某个扩展实现类中会有setProtocol(Protocol protocol)这样的set方法
+                            //这里pt就是Protocol，property就是protocol
+                            //AdaptiveExtensionFactory就会根据这两个参数去查找对应的扩展实现类
+                            //这里就会返回Protocol$Adaptive
                             Object object = objectFactory.getExtension(pt, property);
-                            if (object != null) {
-                                //public void com.alibaba.dubbo.registry.integration.RegistryProtocol.setProtocol(com.alibaba.dubbo.rpc.Protocol)
+                            if (object != null) {//说明set方法的参数是扩展点类型，进行注入
+                                //为set方法注入一个自适应的实现类
                                 method.invoke(instance, object);
                             }
                         } catch (Exception e) {
-                            logger.error("fail to inject via method " + method.getName() + " of interface " + type
-                                    .getName() + ": " + e.getMessage(), e);
                         }
                     }
                 }
             }
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
         }
         return instance;
     }
@@ -642,9 +666,10 @@ public class ExtensionLoader<T> {
                                         if (line.length() > 0) {
                                             Class<?> clazz = Class.forName(line, true, classLoader); // 加载扩展实现类
                                             if (!type.isAssignableFrom(clazz)) { // 判断类型是否匹配
-                                                throw new IllegalStateException("Error when load extension class" + "" +
-                                                        "(interface: " + type + ", class line: " + clazz.getName() +
-                                                        "), class " + clazz.getName() + "is not subtype of interface.");
+                                                throw new IllegalStateException("Error when load extension class" +
+                                                        "" + "(interface: " + type + ", class line: " + clazz.getName
+                                                        () + "), class " + clazz.getName() + "is not subtype of " +
+                                                        "interface.");
                                             }
                                             if (clazz.isAnnotationPresent(Adaptive.class)) { // 判断该实现类是否@Adaptive,
                                                 // 是的话不会放入extensionClasses/cachedClasses缓存
@@ -654,7 +679,7 @@ public class ExtensionLoader<T> {
                                                     // 出现第二个就报错了
                                                     throw new IllegalStateException("More than 1 adaptive class " +
                                                             "found: " + cachedAdaptiveClass.getClass().getName() + "," +
-                                                            "" + " " + clazz.getClass().getName());
+                                                            "" + "" + "" + "" + " " + clazz.getClass().getName());
                                                 }
                                             } else { // 不是@Adaptive类型
                                                 try {
@@ -678,8 +703,8 @@ public class ExtensionLoader<T> {
                                                                         .getSimpleName().length()).toLowerCase();
                                                             } else {
                                                                 throw new IllegalStateException("No such extension "
-                                                                        + "name for the class " + clazz.getName() + "" +
-                                                                        " " + "in the config " + url);
+                                                                        + "name for the class " + clazz.getName() +
+                                                                        "" + " " + "in the config " + url);
                                                             }
                                                         }
                                                     }
@@ -704,9 +729,9 @@ public class ExtensionLoader<T> {
                                                                 // 放入到extensionClasses缓存,多个name可能对应一个Class
                                                             } else if (c != clazz) { // 存在重名
                                                                 throw new IllegalStateException("Duplicate extension " +
-                                                                        "" + "" + type.getName() + " name " + n + " " +
-                                                                        "on " + c.getName() + " and " + clazz.getName
-                                                                        ());
+                                                                        "" + "" + "" + "" + "" + type.getName() + " " +
+                                                                        "name " + n + " " + "on " + c.getName() + " " +
+                                                                        "and " + clazz.getName());
                                                             }
                                                         }
                                                     }
@@ -906,7 +931,7 @@ public class ExtensionLoader<T> {
                                         defaultExtName);
                             else
                                 getNameCode = String.format("( url.getProtocol() == null ? \"%s\" : url.getProtocol()" +
-                                        "" + "" + "" + "" + " )", defaultExtName);
+                                        "" + "" + "" + "" + "" + "" + "" + " )", defaultExtName);
                         } else {
                             if (!"protocol".equals(value[i])) if (hasInvocation)
                                 getNameCode = String.format("url.getMethodParameter(methodName, \"%s\", \"%s\")",

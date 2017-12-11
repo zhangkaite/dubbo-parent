@@ -137,8 +137,8 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
             }
         }
         if (application == null) {
-            throw new IllegalStateException("No such application config! Please add <dubbo:application name=\"...\" " +
-                    "/> to your spring config.");
+            throw new IllegalStateException("No such application config! Please add <dubbo:application name=\"...\" "
+                    + "/> to your spring config.");
         }
         appendProperties(application);
 
@@ -157,6 +157,9 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      * 根据本地配置获取要注册的协议
      * @param provider
      * @return
+     * registry://10.60.0.63:2181/com.alibaba.dubbo.registry
+     * .RegistryService?application=demo-provider&dubbo=2.0.0&owner=william&pid=13532&registry=zookeeper&timestamp
+     * =1512457454177
      */
     protected List<URL> loadRegistries(boolean provider) {
         checkRegistry();
@@ -271,7 +274,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 }
                 if (!hasMethod) {
                     throw new IllegalStateException("The interface " + interfaceClass.getName() + " not found method " +
-                            "" + methodName);
+                            "" + "" + methodName);
                 }
             }
         }
