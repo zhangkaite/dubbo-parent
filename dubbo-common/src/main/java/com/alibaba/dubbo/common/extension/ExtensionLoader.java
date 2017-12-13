@@ -488,7 +488,35 @@ public class ExtensionLoader<T> {
         return new IllegalStateException(buf.toString());
     }
 
-
+    /***
+     *  扫描META-INF路径下的配置文件，
+     * @param name
+     * @return
+     */
+   /* private T createExtension(String name) {
+        Class<?> clazz = getExtensionClasses().get(name);
+        if (clazz == null) {
+            throw findException(name);
+        }
+        try {
+            T instance = (T) EXTENSION_INSTANCES.get(clazz);
+            if (instance == null) {
+                EXTENSION_INSTANCES.putIfAbsent(clazz, (T) clazz.newInstance());
+                instance = (T) EXTENSION_INSTANCES.get(clazz);
+            }
+            injectExtension(instance);
+            Set<Class<?>> wrapperClasses = cachedWrapperClasses;
+            if (wrapperClasses != null && wrapperClasses.size() > 0) {
+                for (Class<?> wrapperClass : wrapperClasses) {
+                    instance = injectExtension((T) wrapperClass.getConstructor(type).newInstance(instance));
+                }
+            }
+            return instance;
+        } catch (Throwable t) {
+            throw new IllegalStateException("Extension instance(name: " + name + ", class: " + type + ")  could not "
+                    + "be instantiated: " + t.getMessage(), t);
+        }
+    }*/
     private T createExtension(String name) {
         //getExtensionClasses加载当前Extension的所有实现
         //上面已经解析过，返回的是一个Map，键是name，值是name对应的Class
