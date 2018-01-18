@@ -110,15 +110,19 @@ public class RegistryProtocol implements Protocol {
         //zookeeper://10.60.0.63:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.0
         // &interface=com.alibaba.dubbo.registry.RegistryService&owner=william&pid=7212&timestamp=1512007376623
         final Registry registry = getRegistry(originInvoker);
-        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&dubbo=2.0.0
-        // &generic=false&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&
+        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo
+        // .DemoService?anyhost=true&application=demo-provider&dubbo=2.0.0
+        // &generic=false&interface=com.alibaba.dubbo.demo
+        // .DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&
         // pid=7212&side=provider&timestamp=1512007376660
         final URL registedProviderUrl = getRegistedProviderUrl(originInvoker);
         registry.register(registedProviderUrl);
         // 订阅override数据
         // FIXME 提供者订阅时，会影响同一JVM即暴露服务，又引用同一服务的的场景，因为subscribed以服务名为缓存的key，导致订阅信息覆盖。
-        //provider://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&category=configurators
-        // &check=false&dubbo=2.0.0&generic=false&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello
+        //provider://10.70.1.141:20880/com.alibaba.dubbo.demo
+        // .DemoService?anyhost=true&application=demo-provider&category=configurators
+        // &check=false&dubbo=2.0.0&generic=false&interface=com.alibaba.dubbo.demo
+        // .DemoService&loadbalance=roundrobin&methods=sayHello
         // &owner=william&pid=7212&side=provider&timestamp=1512007376660
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(registedProviderUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl);
@@ -130,6 +134,57 @@ public class RegistryProtocol implements Protocol {
                 return exporter.getInvoker();
             }
 
+            public void unexport() {
+                try {
+                    exporter.unexport();
+                } catch (Throwable t) {
+                    logger.warn(t.getMessage(), t);
+                }
+                try {
+                    registry.unregister(registedProviderUrl);
+                } catch (Throwable t) {
+                    logger.warn(t.getMessage(), t);
+                }
+                try {
+                    overrideListeners.remove(overrideSubscribeUrl);
+                    registry.unsubscribe(overrideSubscribeUrl, overrideSubscribeListener);
+                } catch (Throwable t) {
+                    logger.warn(t.getMessage(), t);
+                }
+            }
+        };
+    }
+
+
+    public <T> Exporter<T> export1(final Invoker<T> originInvoker) throws RpcException {
+        //export invoker
+        //这里就交给了具体的协议去暴露服务（先不解析，留在后面，可以先去后面看下导出过程）
+        final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker);
+        //registry provider
+        //根据invoker中的url获取Registry实例
+        //并且连接到注册中心
+        //此时提供者作为消费者引用注册中心核心服务RegistryService
+        final Registry registry = getRegistry(originInvoker);
+        //注册到注册中心的URL
+        final URL registedProviderUrl = getRegistedProviderUrl(originInvoker);
+        //调用远端注册中心的register方法进行服务注册
+        //若有消费者订阅此服务，则推送消息让消费者引用此服务。
+        //注册中心缓存了所有提供者注册的服务以供消费者发现。
+        registry.register(registedProviderUrl);
+        // 订阅override数据
+        // FIXME 提供者订阅时，会影响同一JVM即暴露服务，又引用同一服务的的场景，因为subscribed以服务名为缓存的key，导致订阅信息覆盖。
+        final URL overrideSubscribeUrl = getSubscribedOverrideUrl(registedProviderUrl);
+        final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl);
+        overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
+        //提供者向注册中心订阅所有注册服务的覆盖配置
+        //当注册中心有此服务的覆盖配置注册进来时，推送消息给提供者，重新暴露服务，这由管理页面完成。
+        registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
+        //保证每次export都返回一个新的exporter实例
+        //返回暴露后的Exporter给上层ServiceConfig进行缓存，便于后期撤销暴露。
+        return new Exporter<T>() {
+            public Invoker<T> getInvoker() {
+                return exporter.getInvoker();
+            }
             public void unexport() {
                 try {
                     exporter.unexport();
@@ -199,7 +254,12 @@ public class RegistryProtocol implements Protocol {
         URL registryUrl = originInvoker.getUrl();
         if (Constants.REGISTRY_PROTOCOL.equals(registryUrl.getProtocol())) {
             String protocol = registryUrl.getParameter(Constants.REGISTRY_KEY, Constants.DEFAULT_DIRECTORY);
-            //zookeeper://10.60.0.63:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.0&export=dubbo%3A%2F%2F10.70.1.141%3A20880%2Fcom.alibaba.dubbo.demo.DemoService%3Fanyhost%3Dtrue%26application%3Ddemo-provider%26dubbo%3D2.0.0%26generic%3Dfalse%26interface%3Dcom.alibaba.dubbo.demo.DemoService%26loadbalance%3Droundrobin%26methods%3DsayHello%26owner%3Dwilliam%26pid%3D2420%26side%3Dprovider%26timestamp%3D1512007913876&owner=william&pid=2420&timestamp=1512007913838
+            //zookeeper://10.60.0.63:2181/com.alibaba.dubbo.registry
+            // .RegistryService?application=demo-provider&dubbo=2.0.0&export=dubbo%3A%2F%2F10.70.1.141%3A20880%2Fcom
+            // .alibaba.dubbo.demo.DemoService%3Fanyhost%3Dtrue%26application%3Ddemo-provider%26dubbo%3D2.0.0
+            // %26generic%3Dfalse%26interface%3Dcom.alibaba.dubbo.demo
+            // .DemoService%26loadbalance%3Droundrobin%26methods%3DsayHello%26owner%3Dwilliam%26pid%3D2420%26side
+            // %3Dprovider%26timestamp%3D1512007913876&owner=william&pid=2420&timestamp=1512007913838
             registryUrl = registryUrl.setProtocol(protocol).removeParameter(Constants.REGISTRY_KEY);
         }
         return registryFactory.getRegistry(registryUrl);
@@ -256,7 +316,9 @@ public class RegistryProtocol implements Protocol {
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         url = url.setProtocol(url.getParameter(Constants.REGISTRY_KEY, Constants.DEFAULT_REGISTRY)).removeParameter
                 (Constants.REGISTRY_KEY);
-        //zookeeper://10.60.0.63:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-consumer&dubbo=2.0.0&interface=com.alibaba.dubbo.registry.RegistryService&pid=7428&timestamp=1512111525113
+        //zookeeper://10.60.0.63:2181/com.alibaba.dubbo.registry
+        // .RegistryService?application=demo-consumer&dubbo=2.0.0&interface=com.alibaba.dubbo.registry
+        // .RegistryService&pid=7428&timestamp=1512111525113
         Registry registry = registryFactory.getRegistry(url);
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);

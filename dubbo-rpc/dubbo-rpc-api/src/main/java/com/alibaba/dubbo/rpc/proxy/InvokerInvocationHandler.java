@@ -49,6 +49,7 @@ public class InvokerInvocationHandler implements InvocationHandler {
         if ("equals".equals(methodName) && parameterTypes.length == 1) {
             return invoker.equals(args[0]);
         }
+        //其实调用的还是jdk的method.invoke，只不过是做了一层封装
         return invoker.invoke(new RpcInvocation(method, args)).recreate();
     }
 

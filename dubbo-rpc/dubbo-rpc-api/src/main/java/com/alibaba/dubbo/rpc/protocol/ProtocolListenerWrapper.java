@@ -57,9 +57,11 @@ public class ProtocolListenerWrapper implements Protocol {
     // %3Dwilliam%26pid%3D2420%26side%3Dprovider%26timestamp%3D1512007913876&owner=william&pid=2420&registry
     // =zookeeper&timestamp=1512007913838
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
+        //registry类型的Invoker，不需要做处理
         if (Constants.REGISTRY_PROTOCOL.equals(invoker.getUrl().getProtocol())) {
             return protocol.export(invoker);
         }
+        //非Registry类型的Invoker，需要被监听器包装
         return new ListenerExporterWrapper<T>(protocol.export(invoker), Collections.unmodifiableList(ExtensionLoader
                 .getExtensionLoader(ExporterListener.class).getActivateExtension(invoker.getUrl(), Constants
                         .EXPORTER_LISTENER_KEY)));
