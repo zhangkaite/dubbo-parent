@@ -104,8 +104,8 @@ public class DubboProtocol extends AbstractProtocol {
                         }
                     }
                     if (!hasMethod) {
-                        logger.warn(new IllegalStateException("The methodName " + inv.getMethodName() + " not found " +
-                                "in callback service interface ,invoke will be ignored. please update the api " +
+                        logger.warn(new IllegalStateException("The methodName " + inv.getMethodName() + " not found "
+                                + "in callback service interface ,invoke will be ignored. please update the api " +
                                 "interface. url is:" + invoker.getUrl()) + " ,invocation is :" + inv);
                         return null;
                     }
@@ -268,7 +268,11 @@ public class DubboProtocol extends AbstractProtocol {
                 stubServiceMethodsMap.put(url.getServiceKey(), stubServiceMethods);
             }
         }
-//dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&dubbo=2.0.0&generic=false&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=19820&side=provider&timestamp=1511953987490
+        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo
+        // .DemoService?anyhost=true&application=demo-provider&dubbo=2.0.0
+        // &generic=false&interface=com.alibaba.dubbo.demo
+        // .DemoService&loadbalance=roundrobin&methods=sayHello&owner=william
+        // &pid=19820&side=provider&timestamp=1511953987490
         openServer(url);
 
         return exporter;
@@ -295,7 +299,11 @@ public class DubboProtocol extends AbstractProtocol {
         url = url.addParameterIfAbsent(Constants.CHANNEL_READONLYEVENT_SENT_KEY, Boolean.TRUE.toString());
         //默认开启heartbeat
         url = url.addParameterIfAbsent(Constants.HEARTBEAT_KEY, String.valueOf(Constants.DEFAULT_HEARTBEAT));
-        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&channel.readonly.sent=true&dubbo=2.0.0&generic=false&heartbeat=60000&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=19820&side=provider&timestamp=1511953987490
+        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&channel
+        // .readonly.sent=true
+        // &dubbo=2.0.0&generic=false&heartbeat=60000&interface=com.alibaba.dubbo.demo
+        // .DemoService&loadbalance=roundrobin&methods=sayHello
+        // &owner=william&pid=19820&side=provider&timestamp=1511953987490
         String str = url.getParameter(Constants.SERVER_KEY, Constants.DEFAULT_REMOTING_SERVER);
 
         if (str != null && str.length() > 0 && !ExtensionLoader.getExtensionLoader(Transporter.class).hasExtension(str))
@@ -322,7 +330,10 @@ public class DubboProtocol extends AbstractProtocol {
     public <T> Invoker<T> refer(Class<T> serviceType, URL url) throws RpcException {
         // create rpc invoker.
 
-        //interface com.alibaba.dubbo.demo.DemoService -> dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-consumer&check=false&dubbo=2.0.0&generic=false&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=7428&side=consumer&timestamp=1512111525042
+        //interface com.alibaba.dubbo.demo.DemoService -> dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo
+        // .DemoService?anyhost=true&application=demo-consumer&check=false&dubbo=2.0.0&generic=false&interface=com
+        // .alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=7428&side
+        // =consumer&timestamp=1512111525042
         DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
         invokers.add(invoker);
         return invoker;
@@ -330,7 +341,10 @@ public class DubboProtocol extends AbstractProtocol {
 
     private ExchangeClient[] getClients(URL url) {
         //是否共享连接
-        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-consumer&check=false&dubbo=2.0.0&generic=false&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=7428&side=consumer&timestamp=1512111525042
+        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo
+        // .DemoService?anyhost=true&application=demo-consumer&check=false&dubbo=2.0.0&generic=false&interface=com
+        // .alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=7428&side
+        // =consumer&timestamp=1512111525042
         boolean service_share_connect = false;
         int connections = url.getParameter(Constants.CONNECTIONS_KEY, 0);
         //如果connections不配置，则共享连接，否则每服务每连接

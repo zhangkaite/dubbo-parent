@@ -533,7 +533,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             // &timestamp=1512457548575
             URL local = URL.valueOf(url.toFullString()).setProtocol(Constants.LOCAL_PROTOCOL).setHost(NetUtils
                     .LOCALHOST).setPort(0);
-            Exporter<?> exporter = protocol.export(proxyFactory.getInvoker(ref, (Class) interfaceClass, local));
+            Invoker invoker=proxyFactory.getInvoker(ref, (Class) interfaceClass, local);
+            Exporter<?> exporter = protocol.export(invoker);
             exporters.add(exporter);
             logger.info("Export dubbo service " + interfaceClass.getName() + " to local registry");
         }

@@ -307,8 +307,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             Object> attributes) {
         //check config conflict
         if (Boolean.FALSE.equals(method.isReturn()) && (method.getOnreturn() != null || method.getOnthrow() != null)) {
-            throw new IllegalStateException("method config error : return attribute must be set true when onreturn or" +
-                    " onthrow has been setted.");
+            throw new IllegalStateException("method config error : return attribute must be set true when onreturn " +
+                    "or" + " onthrow has been setted.");
         }
         //convert onreturn methodName to Method
         String onReturnMethodKey = StaticContext.getKey(map, method.getName(), Constants.ON_RETURN_METHOD_KEY);
@@ -397,9 +397,9 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                     }
                 }
                 if (urls == null || urls.size() == 0) {
-                    throw new IllegalStateException("No such any registry to reference " + interfaceName + " on the " +
-                            "consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + "," +
-                            " please config <dubbo:registry address=\"...\" /> to your spring config.");
+                    throw new IllegalStateException("No such any registry to reference " + interfaceName + " on the "
+                            + "consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() +
+                            "," + " please config <dubbo:registry address=\"...\" /> to your spring config.");
                 }
             }
 
@@ -417,7 +417,12 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 if (registryURL != null) { // 有 注册中心协议的URL
                     // 对有注册中心的Cluster 只用 AvailableCluster
                     URL u = registryURL.addParameter(Constants.CLUSTER_KEY, AvailableCluster.NAME);
-                   //invoker :interface com.alibaba.dubbo.demo.DemoService -> registry://10.60.0.63:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-consumer&cluster=available&dubbo=2.0.0&pid=7428&refer=application%3Ddemo-consumer%26dubbo%3D2.0.0%26interface%3Dcom.alibaba.dubbo.demo.DemoService%26methods%3DsayHello%26pid%3D7428%26side%3Dconsumer%26timestamp%3D1512111564908&registry=zookeeper&timestamp=1512111588466,directory: com.alibaba.dubbo.rpc.cluster.directory.StaticDirectory@1c0d1b6
+                    //invoker :interface com.alibaba.dubbo.demo.DemoService -> registry://10.60.0.63:2181/com.alibaba
+                    // .dubbo.registry.RegistryService?application=demo-consumer&cluster=available&dubbo=2.0.0&pid
+                    // =7428&refer=application%3Ddemo-consumer%26dubbo%3D2.0.0%26interface%3Dcom.alibaba.dubbo.demo
+                    // .DemoService%26methods%3DsayHello%26pid%3D7428%26side%3Dconsumer%26timestamp%3D1512111564908
+                    // &registry=zookeeper&timestamp=1512111588466,directory: com.alibaba.dubbo.rpc.cluster.directory
+                    // .StaticDirectory@1c0d1b6
                     invoker = cluster.join(new StaticDirectory(u, invokers));
                 } else { // 不是 注册中心的URL
                     invoker = cluster.join(new StaticDirectory(invokers));
@@ -436,7 +441,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             throw new IllegalStateException("Failed to check the status of the service " + interfaceName + ". No " +
                     "provider available for the service " + (group == null ? "" : group + "/") + interfaceName +
                     (version == null ? "" : ":" + version) + " from the url " + invoker.getUrl() + " to the consumer " +
-                    "" + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion());
+                    "" + "" + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion());
         }
         if (logger.isInfoEnabled()) {
             logger.info("Refer dubbo service " + interfaceClass.getName() + " from url " + invoker.getUrl());

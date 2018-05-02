@@ -91,7 +91,8 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
             SPRING_CONTEXT = applicationContext;
             try {
                 //To find a matching method in a class C
-                //public void org.springframework.context.support.AbstractApplicationContext.addApplicationListener(org.springframework.context.ApplicationListener)
+                //public void org.springframework.context.support.AbstractApplicationContext.addApplicationListener
+                // (org.springframework.context.ApplicationListener)
                 Method method = applicationContext.getClass().getMethod("addApplicationListener", new
                         Class<?>[]{ApplicationListener.class}); // 兼容Spring2.0.1
 
