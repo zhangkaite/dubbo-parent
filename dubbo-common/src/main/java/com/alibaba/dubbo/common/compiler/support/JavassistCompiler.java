@@ -66,7 +66,7 @@ public class JavassistCompiler extends AbstractCompiler {
             } else {
                 int pi = pkg.lastIndexOf('.');
                 if (pi > 0) {
-	                String pkgName = pkg.substring(0, pi);
+	                String pkgName = pkg.substring(0, pi);//com.alibaba.dubbo.common.extension
 	                pool.importPackage(pkgName);
 	                importPackages.add(pkgName);
 	                fullNames.put(pkg.substring(pi + 1), pkg);

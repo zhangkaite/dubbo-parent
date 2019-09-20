@@ -40,9 +40,7 @@ yyy=com.foo.YyyProtocol
  * Extension标识Dubbo就拿不到了，异常信息就和配置对应不起来。
  * <br/>
  * 比如:
- * Extension("mina")加载失败，
- * 当用户配置使用mina时，就会报找不到扩展点，
- * 而不是报加载扩展点失败，以及失败原因。
+ * Extension("mina")加载失败，当用户配置使用mina时，就会报找不到扩展点，而不是报加载扩展点失败，以及失败原因。
  *
  * @author william.liangf
  * @author ding.lid

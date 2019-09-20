@@ -280,6 +280,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+        //registry://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.0&owner=william&pid=87040&registry=zookeeper&timestamp=1568881578724
         List<URL> registryURLs = loadRegistries(true);
         for (ProtocolConfig protocolConfig : protocols) {
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
@@ -459,7 +460,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         String contextPath = protocolConfig.getContextpath();
         if ((contextPath == null || contextPath.length() == 0) && provider != null) {
             contextPath = provider.getContextpath();
-        }//dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&dubbo=2.0.0&generic=false&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=16544&side=provider&timestamp=1512458768872
+        }
+        //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&dubbo=2.0.0&generic=false&interface=com.alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=16544&side=provider&timestamp=1512458768872
         URL url = new URL(name, host, port, (contextPath == null || contextPath.length() == 0 ? "" : contextPath +
                 "/") + path, map);
 
@@ -470,10 +472,10 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
         String scope = url.getParameter(Constants.SCOPE_KEY);
         //配置为none不暴露
-        if (!Constants.SCOPE_NONE.toString().equalsIgnoreCase(scope)) {
+        if (!Constants.SCOPE_NONE.equalsIgnoreCase(scope)) {
 
             //配置不是remote的情况下做本地暴露 (配置为remote，则表示只暴露远程服务)
-            if (!Constants.SCOPE_REMOTE.toString().equalsIgnoreCase(scope)) {
+            if (!Constants.SCOPE_REMOTE.equalsIgnoreCase(scope)) {
                 //dubbo://10.70.1.141:20880/com.alibaba.dubbo.demo
                 // .DemoService?anyhost=true&application=demo-provider&dubbo=2.0.0&generic=false&interface=com
                 // .alibaba.dubbo.demo.DemoService&loadbalance=roundrobin&methods=sayHello&owner=william&pid=15060
@@ -481,7 +483,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                 exportLocal(url);
             }
             //如果配置不是local则暴露为远程服务.(配置为local，则表示只暴露本地服务)
-            if (!Constants.SCOPE_LOCAL.toString().equalsIgnoreCase(scope)) {
+            if (!Constants.SCOPE_LOCAL.equalsIgnoreCase(scope)) {
                 if (logger.isInfoEnabled()) {
                     logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                 }
