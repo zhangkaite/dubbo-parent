@@ -44,7 +44,6 @@ public class IOUtils
 	 * @param is InputStream instance.
 	 * @param os OutputStream instance.
 	 * @return count.
-	 * @throws IOException.
 	 */
 	public static long write(InputStream is, OutputStream os) throws IOException
 	{
@@ -58,7 +57,6 @@ public class IOUtils
 	 * @param os OutputStream instance.
 	 * @param bufferSize buffer size.
 	 * @return count.
-	 * @throws IOException.
 	 */
 	public static long write(InputStream is, OutputStream os, int bufferSize) throws IOException
 	{
