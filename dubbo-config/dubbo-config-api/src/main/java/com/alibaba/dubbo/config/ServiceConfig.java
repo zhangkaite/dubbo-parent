@@ -116,6 +116,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         return unexported;
     }
 
+    /**
+     *  开始服务暴露
+     */
     public synchronized void export() {
         if (provider != null) {
             if (export == null) {

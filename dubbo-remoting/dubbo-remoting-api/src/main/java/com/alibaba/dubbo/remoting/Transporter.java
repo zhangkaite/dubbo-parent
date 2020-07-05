@@ -38,7 +38,6 @@ public interface Transporter {
     /**
      * Bind a server.
      * 
-     * @see com.alibaba.dubbo.remoting.Transporters#bind(URL, Receiver, ChannelHandler)
      * @param url server url
      * @param handler
      * @return server
@@ -50,7 +49,6 @@ public interface Transporter {
     /**
      * Connect to a server.
      * 
-     * @see com.alibaba.dubbo.remoting.Transporters#connect(URL, Receiver, ChannelListener)
      * @param url server url
      * @param handler
      * @return client

@@ -33,5 +33,6 @@
 		<module>dubbo-test-compatibility</module>
 		<module>dubbo-test-integration</module>
                 <module>dubbo-test-examples</module>
-	</modules>
+        <module>dubbo-test-self</module>
+    </modules>
 </project>

@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2012 Alibaba Group.
- *  
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,11 +50,20 @@ import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.ServiceConfig;
 import com.alibaba.dubbo.config.annotation.Reference;
 import com.alibaba.dubbo.config.annotation.Service;
+import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
 
 /**
  * AnnotationBean实现了很多spring的特殊bean接口：DisposableBean,BeanFactoryPostProcessor,BeanPostProcessor,
  * ApplicationContextAware。这保证AnnotationBean能够在spring加载的各个时期实现自己的功能。
  * 注解扫描的功能在beanfactory初始化完成调用接口BeanFactoryPostProcessor.postProcessBeanFactory中实现。
+ * <p>
+ * BeanFactoryPostProcessor 实现该接口，可以在spring的bean创建之前，修改bean的定义属性。也就是说，
+ * Spring允许BeanFactoryPostProcessor在容器实例化任何其它bean
+ * 之前读取配置元数据，并可以根据需要进行修改，例如可以把bean的scope从singleton改为prototype，也可以把property的值给修改掉。可以同时配置多个BeanFactoryPostProcessor
+ * ，并通过设置'order'属性来控制各个BeanFactoryPostProcessor的执行次序。
+ * 注意：BeanFactoryPostProcessor是在spring容器加载了bean的定义文件之后，在bean实例化之前执行的。接口方法的入参是ConfigurrableListableBeanFactory
+ * ，使用该参数，可以获取到相关bean的定义信息，
+ *
  * <p>
  * AnnotationBean实现了spring bean和context相关的接口，在spring扫描完注解类，并解析完时调用 export() 方法对服务进行暴露
  */
@@ -80,8 +89,8 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
 
     public void setPackage(String annotationPackage) {
         this.annotationPackage = annotationPackage;
-        this.annotationPackages = (annotationPackage == null || annotationPackage.length() == 0) ? null : Constants
-                .COMMA_SPLIT_PATTERN.split(annotationPackage);
+        this.annotationPackages = (annotationPackage == null || annotationPackage.length() == 0) ? null :
+                Constants.COMMA_SPLIT_PATTERN.split(annotationPackage);
     }
 
     private ApplicationContext applicationContext;
@@ -91,8 +100,10 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
     }
 
     /***
-     。 AnnotationBean的参数annotationPackage，就是在beandefinition创建时，从xml中读取到spring中。源码通过ClassPathBeanDefinitionScanner
-     .doScan扫描annotationPackage下所有的文件。配置成bean的类会定义成BeanDefinition，注册到spring。
+     。 AnnotationBean的参数annotationPackage，就是在beandefinition创建时，从xml中读取到spring中。
+     * 源码通过ClassPathBeanDefinitionScanner.doScan扫描annotationPackage下所有的文件。
+     * 配置成bean的类会定义成BeanDefinition，注册到spring。
+     *  扫描包下面的@Service注解的类，然后将类注入到ioc容器中
      * @param beanFactory
      * @throws BeansException
      */
@@ -103,24 +114,29 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
         if (beanFactory instanceof BeanDefinitionRegistry) {
             try {
                 // init scanner
-                Class<?> scannerClass = ReflectUtils.forName("org.springframework.context.annotation" + "" + "" + ""
-                        + ".ClassPathBeanDefinitionScanner");
+                Class<?> scannerClass =
+                        ReflectUtils.forName("org.springframework.context.annotation" + "" + "" + "" +
+                                ".ClassPathBeanDefinitionScanner");
                 //获取ClassPathBeanDefinitionScanner 实例  获取类的含参私有构造函数，并实例化类
-                Object scanner = scannerClass.getConstructor(new Class<?>[]{BeanDefinitionRegistry.class, boolean
-                        .class}).newInstance(new Object[]{(BeanDefinitionRegistry) beanFactory, true});
+                //疑问点：为啥不直接new ClassPathBeanDefinitionScanner(),这种写法有什么独到之处？;
+                Object scanner = scannerClass.getConstructor(new Class<?>[]{BeanDefinitionRegistry.class,
+                        boolean.class}).newInstance(new Object[]{(BeanDefinitionRegistry) beanFactory, true});
+
                 // add filter
                 Class<?> filterClass = ReflectUtils.forName("org.springframework.core.type.filter" + "" + "" + "" +
                         "" + ".AnnotationTypeFilter");
                 //获取AnnotationTypeFilter实例
                 Object filter = filterClass.getConstructor(Class.class).newInstance(Service.class);
-
-                Method addIncludeFilter = scannerClass.getMethod("addIncludeFilter", ReflectUtils.forName("org" + ""
-                        + ".springframework.core.type.filter.TypeFilter"));
-                //添加包下扫描类类型的过滤
+                //获取ClassPathBeanDefinitionScanner 里面的addIncludeFilter()方法
+                Method addIncludeFilter = scannerClass.getMethod("addIncludeFilter",
+                        ReflectUtils.forName("org" + "" + ".springframework.core.type.filter.TypeFilter"));
+                //添加包下扫描类类型的过滤  然后把注解@service 添加到扫描过滤当中
                 addIncludeFilter.invoke(scanner, filter);
                 // scan packages
                 String[] packages = Constants.COMMA_SPLIT_PATTERN.split(annotationPackage);
+                //获取ClassPathBeanDefinitionScanner里面的scan方法
                 Method scan = scannerClass.getMethod("scan", new Class<?>[]{String[].class});
+                //通过反射调用扫描指定包下面的@service注解，将@Service 注解的类注册到ioc容器当中
                 scan.invoke(scanner, new Object[]{packages});
             } catch (Throwable e) {
                 // spring 2.0
@@ -146,7 +162,8 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
     }
 
     /***
-     * BeanPostProcessor接口作用是：如果我们需要在Spring容器完成Bean的实例化、配置和其他的初始化前后添加一些自己的逻辑处理，
+     * BeanPostProcessor接口作用是：
+     * 如果我们需要在Spring容器完成Bean的实例化、配置和其他的初始化前后添加一些自己的逻辑处理，
      * 我们就可以定义一个或者多个BeanPostProcessor接口的实现，然后注册到容器中。
      * @param bean
      * @param beanName
@@ -168,14 +185,13 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
                 if (bean.getClass().getInterfaces().length > 0) {
                     serviceConfig.setInterface(bean.getClass().getInterfaces()[0]);
                 } else {
-                    throw new IllegalStateException("Failed to export remote service class " + bean.getClass()
-                            .getName() + ", cause: The @Service undefined interfaceClass or interfaceName, and the "
-                            + "service class unimplemented any interfaces.");
+                    throw new IllegalStateException("Failed to export remote service class " + bean.getClass().getName() + ", cause: The @Service undefined interfaceClass or interfaceName, and the " + "service class unimplemented any interfaces.");
                 }
             }
             if (applicationContext != null) {
+                // 将spring 上下文注入到ServiceBean中
                 serviceConfig.setApplicationContext(applicationContext);
-                //
+
                 if (service.registry() != null && service.registry().length > 0) {
                     List<RegistryConfig> registryConfigs = new ArrayList<RegistryConfig>();
                     for (String registryId : service.registry()) {
@@ -186,6 +202,7 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
                     }
                     serviceConfig.setRegistries(registryConfigs);
                 }
+                //下面的操作均为获取注解@Service类的注解值，如果存在，则将其设置到ServiceBean 中
                 if (service.provider() != null && service.provider().length() > 0) {
                     serviceConfig.setProvider((ProviderConfig) applicationContext.getBean(service.provider(),
                             ProviderConfig.class));
@@ -199,8 +216,8 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
                             , ApplicationConfig.class));
                 }
                 if (service.module() != null && service.module().length() > 0) {
-                    serviceConfig.setModule((ModuleConfig) applicationContext.getBean(service.module(), ModuleConfig
-                            .class));
+                    serviceConfig.setModule((ModuleConfig) applicationContext.getBean(service.module(),
+                            ModuleConfig.class));
                 }
                 if (service.provider() != null && service.provider().length() > 0) {
                     serviceConfig.setProvider((ProviderConfig) applicationContext.getBean(service.provider(),
@@ -242,8 +259,9 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
      方法。init中除了设置ReferenceConfig对象的状态外，还会初始化一些参数checkAndLoadConfig。Dubbo将这部分参数都放入System
      .properties中，并根据Rerernce中设置的Value获取在服务器端的Key。之后会调用createProxy()
      .在该方法中，主要是生成对应的invoker，这是RPC调用的关键，记录包括类名，地址等关键信息。之后调用proxyFactory.getProxy(this.invoker)。
-     proxyFactory是调用协议的工厂类，通过调用gerProxy方法找到对应的协议，类名以及地址，最后调用协议的this.protocol.export(this.proxyFactory.getInvoker
-     (instance, type, url))。这样能够调用到远程的对象，并置换本地对应的Reference注解参数。
+     proxyFactory是调用协议的工厂类，通过调用gerProxy方法找到对应的协议，类名以及地址，
+     最后调用协议的this.protocol.export(this.proxyFactory.getInvoker(instance, type, url))。
+     这样能够调用到远程的对象，并置换本地对应的Reference注解参数。
      * @param bean
      * @param beanName
      * @return
@@ -257,8 +275,7 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
         for (Method method : methods) {
             String name = method.getName();
             //判断当前方法是否为set方法、参数个数为1、类型为public
-            if (name.length() > 3 && name.startsWith("set") && method.getParameterTypes().length == 1 && Modifier
-                    .isPublic(method.getModifiers()) && !Modifier.isStatic(method.getModifiers())) {
+            if (name.length() > 3 && name.startsWith("set") && method.getParameterTypes().length == 1 && Modifier.isPublic(method.getModifiers()) && !Modifier.isStatic(method.getModifiers())) {
                 try {
                     Reference reference = method.getAnnotation(Reference.class);
                     if (reference != null) {
@@ -268,8 +285,7 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
                         }
                     }
                 } catch (Throwable e) {
-                    logger.error("Failed to init remote service reference at method " + name + " in class " + bean
-                            .getClass().getName() + ", cause: " + e.getMessage(), e);
+                    logger.error("Failed to init remote service reference at method " + name + " in class " + bean.getClass().getName() + ", cause: " + e.getMessage(), e);
                 }
             }
         }
@@ -287,8 +303,7 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
                     }
                 }
             } catch (Throwable e) {
-                logger.error("Failed to init remote service reference at filed " + field.getName() + " in class " +
-                        bean.getClass().getName() + ", cause: " + e.getMessage(), e);
+                logger.error("Failed to init remote service reference at filed " + field.getName() + " in class " + bean.getClass().getName() + ", cause: " + e.getMessage(), e);
             }
         }
         return bean;
@@ -319,8 +334,7 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
         ReferenceBean<?> referenceConfig = referenceConfigs.get(key);
         if (referenceConfig == null) {
             referenceConfig = new ReferenceBean<Object>(reference);
-            if (void.class.equals(reference.interfaceClass()) && "".equals(reference.interfaceName()) &&
-                    referenceClass.isInterface()) {
+            if (void.class.equals(reference.interfaceClass()) && "".equals(reference.interfaceName()) && referenceClass.isInterface()) {
                 referenceConfig.setInterface(referenceClass);
             }
             if (applicationContext != null) {
@@ -344,8 +358,7 @@ public class AnnotationBean extends AbstractConfig implements DisposableBean, Be
                             MonitorConfig.class));
                 }
                 if (reference.application() != null && reference.application().length() > 0) {
-                    referenceConfig.setApplication((ApplicationConfig) applicationContext.getBean(reference
-                            .application(), ApplicationConfig.class));
+                    referenceConfig.setApplication((ApplicationConfig) applicationContext.getBean(reference.application(), ApplicationConfig.class));
                 }
                 if (reference.module() != null && reference.module().length() > 0) {
                     referenceConfig.setModule((ModuleConfig) applicationContext.getBean(reference.module(),
